@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Expense List</title>
+</head>
+<body>
+    <h2>Expenses</h2>
+    <table border="1" id="expenseTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+    fetch('https://te.infinityfreeapp.com/expense.php')
+    .then(response => response.json())
+    .then(data => {
+        let tbody = document.getElementById('expenseTable').querySelector('tbody');
+        data.forEach(item => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.id}</td>
+                <td>${item.description}</td>
+                <td>${item.amount}</td>
+                <td>${item.date}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    })
+    .catch(err => {
+        console.error('Fetch error:', err);
+    });
+    </script>
+</body>
+</html>
