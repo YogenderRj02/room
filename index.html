@@ -8,6 +8,8 @@
 
 <h2>Expense List</h2>
 
+<p id="message" style="color:red;"></p>
+
 <table border="1" id="expenseTable">
     <thead>
         <tr>
@@ -21,30 +23,58 @@
 </table>
 
 <script>
+
 const proxy = "https://api.allorigins.win/raw?url=";
 const apiURL = "https://te.infinityfreeapp.com/expense.php";
 
 fetch(proxy + encodeURIComponent(apiURL))
-.then(response => response.json())
-.then(data => {
-    console.log(data);
-    let tbody = document.querySelector("#expenseTable tbody");
+.then(response => response.text())
+.then(text => {
 
-    data.forEach(item => {
-        let row = `
-            <tr>
-                <td>${item.id}</td>
-                <td>${item.description}</td>
-                <td>${item.amount}</td>
-                <td>${item.date}</td>
-            </tr>
-        `;
-        tbody.innerHTML += row;
-    });
+    // Check if response is HTML (error page)
+    if (text.startsWith("<")) {
+        document.getElementById("message").innerText =
+            "Server JSON return nahi kar raha. Backend check karo.";
+        console.error("HTML received instead of JSON:", text);
+        return;
+    }
+
+    try {
+        const data = JSON.parse(text);
+
+        let tbody = document.querySelector("#expenseTable tbody");
+        tbody.innerHTML = "";
+
+        if (data.length === 0) {
+            document.getElementById("message").innerText = "No expense data found.";
+            return;
+        }
+
+        data.forEach(item => {
+            let row = `
+                <tr>
+                    <td>${item.id ?? ''}</td>
+                    <td>${item.description ?? ''}</td>
+                    <td>${item.amount ?? ''}</td>
+                    <td>${item.date ?? ''}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+
+    } catch (error) {
+        document.getElementById("message").innerText =
+            "Invalid JSON format from server.";
+        console.error("JSON Parse Error:", error);
+    }
+
 })
 .catch(error => {
+    document.getElementById("message").innerText =
+        "Fetch failed. CORS ya server issue ho sakta hai.";
     console.error("Fetch error:", error);
 });
+
 </script>
 
 </body>
