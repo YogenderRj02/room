@@ -1,0 +1,50 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Members</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="firebase.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+<h2>Room Members</h2>
+
+<input id="memberName" placeholder="Member Name">
+<button onclick="addMember()">Add Member</button>
+
+<div id="memberList"></div>
+
+</div>
+
+<script>
+
+function addMember(){
+
+db.ref("rooms/room1/members").push({
+name:memberName.value
+});
+
+}
+
+db.ref("rooms/room1/members").on("value",snap=>{
+
+memberList.innerHTML="";
+
+snap.forEach(c=>{
+
+memberList.innerHTML+=
+'<div class="card">'+c.val().name+'</div>';
+
+});
+
+});
+
+</script>
+
+</body>
+</html>

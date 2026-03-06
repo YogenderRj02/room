@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Reports</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="firebase.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+<h2>Expense Chart</h2>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+<script>
+
+db.ref("rooms/room1/expenses").once("value",snap=>{
+
+let data={};
+
+snap.forEach(c=>{
+
+let e=c.val();
+
+let month=e.created_at.substring(0,7);
+
+if(!data[month]) data[month]=0;
+
+data[month]+=Number(e.amount);
+
+});
+
+new Chart(document.getElementById("chart"),{
+type:"bar",
+data:{
+labels:Object.keys(data),
+datasets:[{
+label:"Monthly Expense",
+data:Object.values(data)
+}]
+}
+});
+
+});
+
+</script>
+
+</body>
+</html>

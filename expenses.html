@@ -1,0 +1,60 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Expenses</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="firebase.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+<h2>Expenses</h2>
+
+<input id="title" placeholder="Title">
+<input id="amount" type="number" placeholder="Amount">
+<button onclick="addExpense()">Add Expense</button>
+
+<div id="list"></div>
+
+</div>
+
+<script>
+
+function addExpense(){
+
+db.ref("rooms/room1/expenses").push({
+title:title.value,
+amount:Number(amount.value),
+created_at:new Date().toISOString()
+});
+
+}
+
+db.ref("rooms/room1/expenses").on("value",snap=>{
+
+list.innerHTML="";
+
+snap.forEach(c=>{
+
+let e=c.val();
+
+list.innerHTML+=`
+<div class="card">
+<b>${e.title}</b>
+<br>
+₹${e.amount}
+</div>
+`;
+
+});
+
+});
+
+</script>
+
+</body>
+</html>

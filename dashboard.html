@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="firebase.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+<h2>Dashboard</h2>
+
+<div class="card">
+<a href="expenses.html"><button>Expenses</button></a>
+<a href="members.html"><button>Members</button></a>
+<a href="reports.html"><button>Reports</button></a>
+</div>
+
+<div id="summary"></div>
+
+</div>
+
+<script>
+
+db.ref("rooms/room1/expenses").once("value",snap=>{
+
+let total=0;
+
+snap.forEach(c=>{
+total+=Number(c.val().amount);
+});
+
+document.getElementById("summary").innerHTML=
+'<div class="card"><b>Total Expense ₹'+total+'</b></div>';
+
+});
+
+</script>
+
+</body>
+</html>
