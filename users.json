@@ -1,0 +1,18 @@
+{
+  "users": {
+    "user_id_1": {
+      "name": "Mukesh",
+      "email": "Mukesh@room.com",
+      "password": "123456",
+      "role": "user",
+      "created_at": "2026-03-12T10:22:00"
+    },
+    "user_id_2": {
+      "name": "Admin",
+      "email": "admin@room.com",
+      "password": "123456",
+      "role": "admin",
+      "created_at": "2026-03-12T10:30:00"
+    }
+  }
+}

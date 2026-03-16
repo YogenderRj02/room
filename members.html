@@ -3,48 +3,423 @@
 <html>
 <head>
 <title>Members</title>
+
 <link rel="stylesheet" href="style.css">
+
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 <script src="firebase.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6fb;
+margin:0;
+}
+
+.container{
+max-width:1100px;
+margin:auto;
+padding:20px;
+}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
+.searchbar{
+margin-bottom:20px;
+}
+
+.searchbar input{
+width:100%;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+font-size:14px;
+}
+
+button{
+padding:8px 15px;
+border:none;
+background:#007bff;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+.add-btn{
+background:#28a745;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+gap:15px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 4px 10px rgba(0,0,0,0.08);
+cursor:pointer;
+text-align:center;
+transition:0.3s;
+}
+
+.card:hover{
+transform:translateY(-5px);
+}
+
+.avatar{
+width:55px;
+height:55px;
+background:#007bff;
+color:white;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:20px;
+margin:auto;
+margin-bottom:10px;
+}
+
+.email{
+font-size:13px;
+color:#666;
+}
+
+.role{
+font-size:12px;
+background:#eef3ff;
+padding:3px 8px;
+border-radius:6px;
+display:inline-block;
+margin-top:5px;
+}
+
+
+/* POPUP */
+
+.popup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.6);
+display:none;
+justify-content:center;
+align-items:center;
+z-index:999;
+}
+
+.popup-content{
+background:white;
+padding:30px;
+border-radius:14px;
+width:360px;
+max-width:90%;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);
+animation:popupOpen .25s ease;
+}
+
+.popup-content h3{
+text-align:center;
+margin-bottom:20px;
+}
+
+.popup-content input,
+.popup-content select{
+width:100%;
+padding:10px;
+margin-bottom:12px;
+border:1px solid #ddd;
+border-radius:8px;
+}
+
+.popup-buttons{
+display:flex;
+gap:6px;
+flex-wrap:wrap;
+}
+
+.popup-buttons button{
+flex:1;
+padding:10px;
+border-radius:8px;
+font-weight:bold;
+}
+
+.save-btn{background:#28a745;}
+.update-btn{background:#007bff;}
+.delete-btn{background:#dc3545;}
+.cancel-btn{background:#6c757d;}
+
+@keyframes popupOpen{
+from{transform:scale(.9);opacity:0}
+to{transform:scale(1);opacity:1}
+}
+
+</style>
+
 </head>
+
 <body>
 
 <div class="container">
 
-<h2>Room Members</h2>
+<div class="topbar">
+<h2>👥 Members</h2>
+<button class="add-btn" onclick="openAddPopup()">+ Add User</button>
+</div>
 
-<input id="memberName" placeholder="Member Name">
-<button onclick="addMember()">Add Member</button>
+<div class="searchbar">
+<input type="text" id="search" placeholder="🔍 Search users..." onkeyup="render()">
+</div>
 
-<div id="memberList"></div>
+<div class="cards" id="memberList"></div>
 
 </div>
 
+
+<!-- POPUP -->
+
+<div class="popup" id="popup">
+
+<div class="popup-content">
+
+<h3 id="popupTitle">Add User</h3>
+
+<input id="name" placeholder="Name">
+<input id="email" placeholder="Email">
+<input id="password" placeholder="Password">
+
+<select id="role">
+<option value="user">User</option>
+<option value="admin">Admin</option>
+</select>
+
+<div class="popup-buttons">
+
+<button id="saveBtn" class="save-btn" onclick="saveUser()">Save</button>
+<button id="updateBtn" class="update-btn" onclick="updateUser()" style="display:none">Update</button>
+<button id="deleteBtn" class="delete-btn" onclick="deleteUser()" style="display:none">Delete</button>
+<button class="cancel-btn" onclick="closePopup()">Cancel</button>
+
+</div>
+
+</div>
+
+</div>
+
+
 <script>
 
-function addMember(){
+let editId=null
+let users=[]
 
-db.ref("rooms/room1/members").push({
-name:memberName.value
-});
+
+// LOAD USERS
+
+function loadUsers(){
+
+db.ref("users").once("value",snap=>{
+
+users=[]
+
+snap.forEach(c=>{
+users.push({id:c.key,...c.val()})
+})
+
+render()
+
+})
 
 }
 
-db.ref("rooms/room1/members").on("value",snap=>{
 
-memberList.innerHTML="";
+// RENDER USERS + SEARCH
 
-snap.forEach(c=>{
+function render(){
 
-memberList.innerHTML+=
-'<div class="card">'+c.val().name+'</div>';
+let search=document.getElementById("search").value.toLowerCase()
 
-});
+memberList.innerHTML=""
 
-});
+users.slice().reverse().forEach(u=>{
+
+if(
+u.name.toLowerCase().includes(search) ||
+u.email.toLowerCase().includes(search)
+){
+
+memberList.innerHTML+=`
+
+<div class="card" onclick='openEditPopup("${u.id}",${JSON.stringify(u)})'>
+
+<div class="avatar">${u.name ? u.name.charAt(0) : "U"}</div>
+
+<b>${u.name}</b>
+
+<div class="email">${u.email}</div>
+
+<div class="role">${u.role}</div>
+
+</div>
+
+`
+
+}
+
+})
+
+}
+
+
+// OPEN ADD POPUP
+
+function openAddPopup(){
+
+document.getElementById("popup").style.display="flex"
+
+document.getElementById("popupTitle").innerText="Add User"
+
+document.getElementById("name").value=""
+document.getElementById("email").value=""
+document.getElementById("password").value=""
+document.getElementById("role").value="user"
+
+document.getElementById("saveBtn").style.display="inline"
+document.getElementById("updateBtn").style.display="none"
+document.getElementById("deleteBtn").style.display="none"
+
+editId=null
+
+}
+
+
+// OPEN EDIT POPUP
+
+function openEditPopup(id,data){
+
+document.getElementById("popup").style.display="flex"
+
+document.getElementById("popupTitle").innerText="Edit User"
+
+document.getElementById("name").value=data.name || ""
+document.getElementById("email").value=data.email || ""
+document.getElementById("password").value=data.password || ""
+document.getElementById("role").value=data.role || "user"
+
+document.getElementById("saveBtn").style.display="none"
+document.getElementById("updateBtn").style.display="inline"
+document.getElementById("deleteBtn").style.display="inline"
+
+editId=id
+
+}
+
+
+function closePopup(){
+document.getElementById("popup").style.display="none"
+}
+
+
+// SAVE USER
+
+function saveUser(){
+
+let nameValue=document.getElementById("name").value.trim()
+let emailValue=document.getElementById("email").value.trim()
+let passwordValue=document.getElementById("password").value.trim()
+let roleValue=document.getElementById("role").value
+
+if(!nameValue || !emailValue || !passwordValue){
+alert("Please fill all fields")
+return
+}
+
+db.ref("users").push({
+
+name:nameValue,
+email:emailValue,
+password:passwordValue,
+role:roleValue,
+created_at:new Date().toISOString()
+
+})
+
+closePopup()
+loadUsers()
+
+}
+
+
+// UPDATE USER
+
+function updateUser(){
+
+let nameValue=document.getElementById("name").value.trim()
+let emailValue=document.getElementById("email").value.trim()
+let passwordValue=document.getElementById("password").value.trim()
+let roleValue=document.getElementById("role").value
+
+if(!nameValue || !emailValue || !passwordValue){
+alert("Please fill all fields")
+return
+}
+
+db.ref("users/"+editId).update({
+
+name:nameValue,
+email:emailValue,
+password:passwordValue,
+role:roleValue
+
+})
+
+closePopup()
+loadUsers()
+
+}
+
+
+// DELETE USER
+
+function deleteUser(){
+
+if(confirm("Delete this user?")){
+
+db.ref("users/"+editId).remove()
+
+closePopup()
+loadUsers()
+
+}
+
+}
+
+
+// CLOSE POPUP ON OUTSIDE CLICK
+
+window.onclick=function(e){
+if(e.target==document.getElementById("popup")){
+closePopup()
+}
+}
+
+
+loadUsers()
 
 </script>
 
 </body>
 </html>
+

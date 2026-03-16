@@ -1,58 +1,408 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-<title>Expenses</title>
-<link rel="stylesheet" href="style.css">
+
+<title>Expense Manager</title>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 <script src="firebase.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f5f7fb;
+margin:0;
+}
+
+.container{
+max-width:900px;
+margin:auto;
+padding:20px;
+}
+
+.controls{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin-bottom:20px;
+}
+
+button{
+padding:10px 15px;
+background:#007bff;
+color:white;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+gap:15px;
+}
+
+.card{
+background:white;
+padding:15px;
+border-radius:10px;
+box-shadow:0 2px 5px rgba(0,0,0,0.1);
+cursor:pointer;
+}
+
+.popup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.5);
+display:none;
+align-items:center;
+justify-content:center;
+}
+
+.popup-content{
+background:white;
+padding:20px;
+border-radius:10px;
+width:320px;
+}
+
+input,select,textarea{
+width:100%;
+padding:8px;
+margin-bottom:10px;
+border:1px solid #ccc;
+border-radius:6px;
+}
+
+.charts{
+margin-top:40px;
+background:white;
+padding:20px;
+border-radius:10px;
+}
+
+</style>
+
 </head>
+
 <body>
 
 <div class="container">
 
-<h2>Expenses</h2>
+<h2>Expense Manager</h2>
 
-<input id="title" placeholder="Title">
-<input id="amount" type="number" placeholder="Amount">
-<button onclick="addExpense()">Add Expense</button>
+<div class="controls">
 
-<div id="list"></div>
+<button onclick="openAddPopup()">Add Expense</button>
+
+<select id="limit" onchange="loadExpenses()">
+<option value="5">Last 5</option>
+<option value="10">Last 10</option>
+<option value="20">Last 20</option>
+<option value="1000">All</option>
+</select>
+
+<input type="date" id="dateFilter" onchange="render()">
+
+<input placeholder="Search..." id="search" onkeyup="render()">
 
 </div>
+
+<div class="cards" id="list"></div>
+
+<div class="charts">
+
+<h3>User Expense Charts</h3>
+
+<canvas id="pieChart"></canvas>
+
+<br><br>
+
+<canvas id="barChart"></canvas>
+
+</div>
+
+</div>
+
+
+<!-- POPUP -->
+
+<div class="popup" id="popup">
+
+<div class="popup-content">
+
+<h3 id="popupTitle">Add Expense</h3>
+
+<select id="titleSelect" onchange="checkOther()">
+
+<option value="">Select Category</option>
+<option>Food</option>
+<option>Travel</option>
+<option>Shopping</option>
+<option>Bills</option>
+<option>Entertainment</option>
+<option value="other">Others</option>
+
+</select>
+
+<input id="titleOther" placeholder="Enter Title" style="display:none">
+
+<input id="amount" type="number" placeholder="Amount">
+
+<textarea id="description" placeholder="Description"></textarea>
+
+<button id="saveBtn" onclick="saveExpense()">Save</button>
+
+<button id="updateBtn" onclick="updateExpense()" style="display:none">Update</button>
+
+<button id="deleteBtn" onclick="deleteExpense()" style="display:none">Delete</button>
+
+<button onclick="closePopup()">Cancel</button>
+
+</div>
+
+</div>
+
 
 <script>
 
-function addExpense(){
+let editId=null
+let allData=[]
 
-db.ref("rooms/room1/expenses").push({
-title:title.value,
-amount:Number(amount.value),
-created_at:new Date().toISOString()
-});
+let currentUser = localStorage.getItem("user_id") || "user1"
+
+
+function checkOther(){
+
+if(titleSelect.value=="other"){
+titleOther.style.display="block"
+}else{
+titleOther.style.display="none"
+}
 
 }
 
-db.ref("rooms/room1/expenses").on("value",snap=>{
 
-list.innerHTML="";
+function openAddPopup(){
+
+popup.style.display="flex"
+
+popupTitle.innerText="Add Expense"
+
+titleSelect.value=""
+titleOther.value=""
+titleOther.style.display="none"
+
+amount.value=""
+description.value=""
+
+saveBtn.style.display="inline"
+updateBtn.style.display="none"
+deleteBtn.style.display="none"
+
+editId=null
+
+}
+
+
+function closePopup(){
+popup.style.display="none"
+}
+
+
+function saveExpense(){
+
+let titleValue = titleSelect.value=="other"
+? titleOther.value
+: titleSelect.value
+
+db.ref("rooms/room1/expenses").push({
+
+user_id:currentUser,
+title:titleValue,
+amount:Number(amount.value),
+description:description.value,
+created_at:new Date().toISOString()
+
+})
+
+closePopup()
+
+loadExpenses()
+
+}
+
+
+function openEditPopup(id,data){
+
+popup.style.display="flex"
+
+editId=id
+
+amount.value=data.amount
+description.value=data.description
+
+if(["Food","Travel","Shopping","Bills","Entertainment"].includes(data.title)){
+titleSelect.value=data.title
+titleOther.style.display="none"
+}else{
+titleSelect.value="other"
+titleOther.style.display="block"
+titleOther.value=data.title
+}
+
+saveBtn.style.display="none"
+updateBtn.style.display="inline"
+deleteBtn.style.display="inline"
+
+}
+
+
+function updateExpense(){
+
+let titleValue = titleSelect.value=="other"
+? titleOther.value
+: titleSelect.value
+
+db.ref("rooms/room1/expenses/"+editId).update({
+
+title:titleValue,
+amount:Number(amount.value),
+description:description.value
+
+})
+
+closePopup()
+
+loadExpenses()
+
+}
+
+
+function deleteExpense(){
+
+db.ref("rooms/room1/expenses/"+editId).remove()
+
+closePopup()
+
+loadExpenses()
+
+}
+
+
+function loadExpenses(){
+
+let limitValue = Number(limit.value)
+
+db.ref("rooms/room1/expenses")
+.limitToLast(limitValue)
+.once("value",snap=>{
+
+allData=[]
 
 snap.forEach(c=>{
+allData.push({id:c.key,...c.val()})
+})
 
-let e=c.val();
+render()
+
+})
+
+}
+
+
+function render(){
+
+let searchText=search.value.toLowerCase()
+let dateValue=dateFilter.value
+
+list.innerHTML=""
+
+let userTotals={}
+
+allData.reverse().forEach(e=>{
+
+let date=e.created_at.split("T")[0]
+
+if(dateValue && date!=dateValue) return
+if(searchText && !e.title.toLowerCase().includes(searchText)) return
+
+userTotals[e.user_id]=(userTotals[e.user_id]||0)+e.amount
 
 list.innerHTML+=`
-<div class="card">
+
+<div class="card" onclick='openEditPopup("${e.id}",${JSON.stringify(e)})'>
+
 <b>${e.title}</b>
-<br>
+
+<br><br>
+
 ₹${e.amount}
+
+<br>
+
+<small>${e.user_id}</small>
+
+<br>
+
+<small>${date}</small>
+
 </div>
-`;
 
-});
+`
 
-});
+})
+
+generateCharts(userTotals)
+
+}
+
+
+let pieChart
+let barChart
+
+
+function generateCharts(userTotals){
+
+let labels=Object.keys(userTotals)
+let values=Object.values(userTotals)
+
+if(pieChart) pieChart.destroy()
+if(barChart) barChart.destroy()
+
+pieChart=new Chart(document.getElementById("pieChart"),{
+
+type:"pie",
+
+data:{
+labels:labels,
+datasets:[{data:values}]
+}
+
+})
+
+barChart=new Chart(document.getElementById("barChart"),{
+
+type:"bar",
+
+data:{
+labels:labels,
+datasets:[{data:values}]
+}
+
+})
+
+}
+
+
+loadExpenses()
 
 </script>
 

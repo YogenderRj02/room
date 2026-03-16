@@ -1,43 +1,267 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-<title>Dashboard</title>
+
+<title>Admin Dashboard</title>
+
 <link rel="stylesheet" href="style.css">
+
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 <script src="firebase.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6fb;
+}
+
+.container{
+max-width:1100px;
+margin:auto;
+padding:20px;
+}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:25px;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:15px;
+margin-bottom:25px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 3px 8px rgba(0,0,0,0.08);
+text-align:center;
+cursor:pointer;
+}
+
+.card:hover{
+background:#f0f4ff;
+}
+
+.card h3{
+font-size:26px;
+color:#007bff;
+margin-top:10px;
+}
+
+.charts{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 3px 8px rgba(0,0,0,0.08);
+}
+
+.chart-box{
+margin-bottom:40px;
+}
+
+button{
+padding:8px 15px;
+border:none;
+background:#007bff;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+</style>
+
 </head>
+
 <body>
 
 <div class="container">
 
-<h2>Dashboard</h2>
+<div class="topbar">
 
-<div class="card">
-<a href="expenses.html"><button>Expenses</button></a>
-<a href="members.html"><button>Members</button></a>
-<a href="reports.html"><button>Reports</button></a>
-</div>
+<h2>Admin Dashboard</h2>
 
-<div id="summary"></div>
+<button onclick="logout()">Logout</button>
 
 </div>
+
+
+<!-- SUMMARY CARDS -->
+
+<div class="cards">
+
+<div class="card" onclick="location.href='members.html'">
+<p>Total Users</p>
+<h3 id="totalUsers">0</h3>
+</div>
+
+<div class="card" onclick="location.href='expenses.html'">
+<p>Total Expenses</p>
+<h3 id="totalExpense">₹0</h3>
+</div>
+
+<div class="card" onclick="location.href='reports.html'">
+<p>Last 30 Days Expense</p>
+<h3 id="last30">₹0</h3>
+</div>
+
+</div>
+
+
+<!-- CHARTS -->
+
+<div class="charts">
+
+<h3>User Wise Expense (Last 30 Days)</h3>
+
+<div class="chart-box">
+<canvas id="pieChart"></canvas>
+</div>
+
+<div class="chart-box">
+<canvas id="barChart"></canvas>
+</div>
+
+</div>
+
+</div>
+
 
 <script>
 
+if(localStorage.getItem("user_role")!="admin"){
+window.location.href="login.html"
+}
+
+function logout(){
+
+localStorage.clear()
+window.location.href="login.html"
+
+}
+
+let totalExpense=0
+let last30Expense=0
+
+let userTotals={}
+let userNames={}
+
+
+// LOAD USERS
+
+db.ref("users").once("value",snap=>{
+
+document.getElementById("totalUsers").innerText=snap.numChildren()
+
+snap.forEach(u=>{
+
+userNames[u.key]=u.val().name
+
+})
+
+})
+
+
+// LOAD EXPENSES
+
 db.ref("rooms/room1/expenses").once("value",snap=>{
 
-let total=0;
+let today=new Date()
 
 snap.forEach(c=>{
-total+=Number(c.val().amount);
-});
 
-document.getElementById("summary").innerHTML=
-'<div class="card"><b>Total Expense ₹'+total+'</b></div>';
+let e=c.val()
 
-});
+let amount=Number(e.amount)
+
+totalExpense+=amount
+
+
+let d=new Date(e.created_at)
+
+let diff=(today-d)/(1000*60*60*24)
+
+
+// LAST 30 DAYS DATA
+
+if(diff<=30){
+
+last30Expense+=amount
+
+userTotals[e.user_id]=(userTotals[e.user_id]||0)+amount
+
+}
+
+})
+
+
+document.getElementById("totalExpense").innerText="₹"+totalExpense
+
+document.getElementById("last30").innerText="₹"+last30Expense
+
+
+generateCharts()
+
+})
+
+
+
+function generateCharts(){
+
+let labels=[]
+let values=[]
+
+for(let id in userTotals){
+
+labels.push(userNames[id] || "Unknown")
+
+values.push(userTotals[id])
+
+}
+
+
+// PIE CHART
+
+new Chart(document.getElementById("pieChart"),{
+
+type:"pie",
+
+data:{
+labels:labels,
+datasets:[{
+data:values
+}]
+}
+
+})
+
+
+// BAR CHART
+
+new Chart(document.getElementById("barChart"),{
+
+type:"bar",
+
+data:{
+labels:labels,
+datasets:[{
+label:"Expenses (Last 30 Days)",
+data:values
+}]
+}
+
+})
+
+}
 
 </script>
 
