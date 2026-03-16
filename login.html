@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,39 +11,70 @@
 
 <style>
 
+*{
+box-sizing:border-box;
+}
+
 body{
-font-family:Arial;
-background:#f4f6f9;
-display:flex;
-justify-content:center;
-align-items:center;
+margin:0;
+font-family:Arial, Helvetica, sans-serif;
 height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+background:linear-gradient(135deg,#4facfe,#00f2fe);
 }
 
 .login-box{
 background:white;
-padding:30px;
-border-radius:10px;
-box-shadow:0 3px 10px rgba(0,0,0,0.1);
-width:300px;
+padding:40px;
+border-radius:14px;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);
+width:320px;
+text-align:center;
+animation:fadeIn .4s ease;
+}
+
+.login-box h2{
+margin-bottom:25px;
+color:#333;
+}
+
+.input-group{
+margin-bottom:15px;
+text-align:left;
+}
+
+.input-group label{
+font-size:13px;
+color:#666;
 }
 
 input{
 width:100%;
 padding:10px;
-margin-bottom:10px;
-border:1px solid #ccc;
-border-radius:6px;
+border-radius:8px;
+border:1px solid #ddd;
+margin-top:5px;
+font-size:14px;
+transition:0.2s;
+}
+
+input:focus{
+border-color:#007bff;
+outline:none;
 }
 
 button{
 width:100%;
-padding:10px;
+padding:12px;
+border:none;
 background:#007bff;
 color:white;
-border:none;
-border-radius:6px;
+border-radius:8px;
+font-size:15px;
 cursor:pointer;
+transition:.2s;
 }
 
 button:hover{
@@ -50,9 +82,20 @@ background:#0056b3;
 }
 
 .error{
+margin-top:10px;
 color:red;
 font-size:14px;
-text-align:center;
+}
+
+@keyframes fadeIn{
+from{
+opacity:0;
+transform:translateY(20px);
+}
+to{
+opacity:1;
+transform:translateY(0);
+}
 }
 
 </style>
@@ -63,11 +106,17 @@ text-align:center;
 
 <div class="login-box">
 
-<h2>Login</h2>
+<h2>🔐 Login</h2>
 
-<input id="email" placeholder="Email">
+<div class="input-group">
+<label>Email</label>
+<input id="email" placeholder="Enter email">
+</div>
 
-<input id="password" type="password" placeholder="Password">
+<div class="input-group">
+<label>Password</label>
+<input id="password" type="password" placeholder="Enter password">
+</div>
 
 <button onclick="login()">Login</button>
 
@@ -80,10 +129,10 @@ text-align:center;
 
 function login(){
 
-let emailValue = email.value
-let passwordValue = password.value
+let emailValue = document.getElementById("email").value.trim()
+let passwordValue = document.getElementById("password").value.trim()
 
-error.innerText=""
+document.getElementById("error").innerText=""
 
 db.ref("users").once("value",snap=>{
 
@@ -97,21 +146,14 @@ if(user.email==emailValue && user.password==passwordValue){
 
 found=true
 
-// user info save
 localStorage.setItem("user_id",u.key)
 localStorage.setItem("user_role",user.role)
 localStorage.setItem("user_name",user.name)
 
-// role based redirect
-
 if(user.role=="admin"){
-
 window.location.href="dashboard.html"
-
 }else{
-
 window.location.href="expenses.html"
-
 }
 
 }
@@ -119,9 +161,7 @@ window.location.href="expenses.html"
 })
 
 if(!found){
-
-error.innerText="Invalid Email or Password"
-
+document.getElementById("error").innerText="Invalid Email or Password"
 }
 
 })
@@ -132,3 +172,4 @@ error.innerText="Invalid Email or Password"
 
 </body>
 </html>
+
